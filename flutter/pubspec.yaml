@@ -37,6 +37,7 @@ dependencies:
   fl_chart: ^0.70.2
   candlesticks: ^2.1.0
   webview_flutter: ^4.10.0
+  webview_flutter_android: ^4.3.0
 
   # Utilities
   crypto: ^3.0.5

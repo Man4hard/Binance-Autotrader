@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import '../../core/constants.dart';
 import '../../domain/entities/candle.dart';
@@ -91,6 +94,10 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen>
   bool _isLoadingSignal = false;
   String? _signalError;
 
+  double? _livePrice;
+  Timer? _priceTimer;
+  Timer? _signalTimer;
+
   List<String> _allSymbols = [];
   bool _symbolsLoading = false;
 
@@ -104,12 +111,37 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen>
     _initWebView();
     _loadSignal();
     _fetchAllSymbols();
+    _startLivePricePoll();
+    // Refresh indicator data every 30 seconds
+    _signalTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) { if (mounted) _loadSignal(); },
+    );
   }
 
   @override
   void dispose() {
+    _priceTimer?.cancel();
+    _signalTimer?.cancel();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _startLivePricePoll() {
+    _priceTimer?.cancel();
+    _fetchLivePrice();
+    _priceTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) { if (mounted) _fetchLivePrice(); },
+    );
+  }
+
+  Future<void> _fetchLivePrice() async {
+    try {
+      final client = ref.read(restClientProvider);
+      final price = await client.getLatestPrice(_selectedSymbol);
+      if (mounted) setState(() => _livePrice = price);
+    } catch (_) {}
   }
 
   Future<void> _fetchAllSymbols() async {
@@ -141,9 +173,13 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen>
         onSelected: (s) {
           Navigator.pop(context);
           if (s != _selectedSymbol) {
-            setState(() => _selectedSymbol = s);
+            setState(() {
+              _selectedSymbol = s;
+              _livePrice = null;
+            });
             _updateChart();
             _loadSignal();
+            _startLivePricePoll();
           }
         },
       ),
@@ -154,6 +190,12 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen>
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFF0d1117))
+      // Chrome UA so TradingView serves the live streaming widget
+      ..setUserAgent(
+        'Mozilla/5.0 (Linux; Android 12; Pixel 6) '
+        'AppleWebKit/537.36 (KHTML, like Gecko) '
+        'Chrome/120.0.0.0 Mobile Safari/537.36',
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (_) {
@@ -165,6 +207,13 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen>
         ),
       )
       ..loadHtmlString(_buildTvHtml(_selectedSymbol, _selectedTimeframe));
+
+    // Enable DOM storage on Android (required for TradingView localStorage)
+    if (_webViewController.platform is AndroidWebViewController) {
+      final android = _webViewController.platform as AndroidWebViewController;
+      AndroidWebViewController.enableDebugging(false);
+      android.setMediaPlaybackRequiresUserGesture(false);
+    }
   }
 
   void _updateChart() {
@@ -218,23 +267,50 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                _selectedSymbol,
-                style: const TextStyle(
-                  color: kTextPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 4),
-              _symbolsLoading
-                  ? const SizedBox(
-                      width: 13, height: 13,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 1.5, color: kTextSecondary),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        _selectedSymbol,
+                        style: const TextStyle(
+                          color: kTextPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      _symbolsLoading
+                          ? const SizedBox(
+                              width: 12, height: 12,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 1.5, color: kTextSecondary),
+                            )
+                          : const Icon(Icons.expand_more,
+                              color: kTextSecondary, size: 16),
+                    ],
+                  ),
+                  if (_livePrice != null)
+                    Text(
+                      '\$${_livePrice!.toStringAsFixed(
+                        _livePrice! < 1 ? 6 : _livePrice! < 100 ? 4 : 2,
+                      )}',
+                      style: const TextStyle(
+                        color: kProfitColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
                     )
-                  : const Icon(Icons.expand_more,
-                      color: kTextSecondary, size: 18),
+                  else
+                    const Text(
+                      'Loading price…',
+                      style: TextStyle(
+                          color: kTextSecondary, fontSize: 10),
+                    ),
+                ],
+              ),
             ],
           ),
         ),

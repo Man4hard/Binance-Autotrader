@@ -174,6 +174,24 @@ class BinanceRestClient {
     return symbols;
   }
 
+  /// Returns the latest price for a single symbol. Very lightweight (weight 2).
+  Future<double> getLatestPrice(String symbol) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/v3/ticker/price').replace(
+        queryParameters: {'symbol': symbol},
+      ),
+    );
+    _updateWeight(response);
+    if (response.statusCode != 200) {
+      throw NetworkError(
+        'Failed to fetch price for $symbol',
+        statusCode: response.statusCode,
+      );
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return double.parse(data['price'] as String);
+  }
+
   Future<AccountBalance> getAccountInfo({
     required String apiKey,
     required String secret,
