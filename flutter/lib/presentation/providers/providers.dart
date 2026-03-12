@@ -9,6 +9,12 @@ import 'signal_notifier.dart';
 import 'daily_stats_notifier.dart';
 
 export 'repository_providers.dart';
+export 'strategy_settings_notifier.dart';
+export 'account_balance_notifier.dart';
+export 'active_trades_notifier.dart';
+export 'trade_history_notifier.dart';
+export 'signal_notifier.dart';
+export 'daily_stats_notifier.dart';
 
 final strategySettingsProvider =
     NotifierProvider<StrategySettingsNotifier, StrategySettingsState>(
