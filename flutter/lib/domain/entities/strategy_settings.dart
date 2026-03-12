@@ -18,6 +18,15 @@ class StrategySettings {
   final double rsiOversold;
   final int bbPeriod;
   final double bbStdDev;
+  // VSA parameters
+  final int vsaLookback;
+  final double vsaHighVolThreshold;
+  final double vsaVeryHighVolThreshold;
+  final double vsaLowVolThreshold;
+  final double vsaWideSpreadThreshold;
+  final double vsaNarrowSpreadThreshold;
+  final double vsaCloseNearTopThreshold;
+  final double vsaCloseNearBottomThreshold;
   final int atrPeriod;
   final double atrMultiplier;
   final double minRR;
@@ -49,6 +58,14 @@ class StrategySettings {
     this.rsiOversold = 20.0,
     this.bbPeriod = 20,
     this.bbStdDev = 2.0,
+    this.vsaLookback = 20,
+    this.vsaHighVolThreshold = 1.5,
+    this.vsaVeryHighVolThreshold = 2.0,
+    this.vsaLowVolThreshold = 0.7,
+    this.vsaWideSpreadThreshold = 1.3,
+    this.vsaNarrowSpreadThreshold = 0.7,
+    this.vsaCloseNearTopThreshold = 0.6,
+    this.vsaCloseNearBottomThreshold = 0.4,
     this.atrPeriod = 14,
     this.atrMultiplier = AppConstants.defaultAtrMultiplier,
     this.minRR = AppConstants.defaultMinRR,
@@ -92,6 +109,14 @@ class StrategySettings {
     double? rsiOversold,
     int? bbPeriod,
     double? bbStdDev,
+    int? vsaLookback,
+    double? vsaHighVolThreshold,
+    double? vsaVeryHighVolThreshold,
+    double? vsaLowVolThreshold,
+    double? vsaWideSpreadThreshold,
+    double? vsaNarrowSpreadThreshold,
+    double? vsaCloseNearTopThreshold,
+    double? vsaCloseNearBottomThreshold,
     int? atrPeriod,
     double? atrMultiplier,
     double? minRR,
@@ -122,6 +147,14 @@ class StrategySettings {
       rsiOversold: rsiOversold ?? this.rsiOversold,
       bbPeriod: bbPeriod ?? this.bbPeriod,
       bbStdDev: bbStdDev ?? this.bbStdDev,
+      vsaLookback: vsaLookback ?? this.vsaLookback,
+      vsaHighVolThreshold: vsaHighVolThreshold ?? this.vsaHighVolThreshold,
+      vsaVeryHighVolThreshold: vsaVeryHighVolThreshold ?? this.vsaVeryHighVolThreshold,
+      vsaLowVolThreshold: vsaLowVolThreshold ?? this.vsaLowVolThreshold,
+      vsaWideSpreadThreshold: vsaWideSpreadThreshold ?? this.vsaWideSpreadThreshold,
+      vsaNarrowSpreadThreshold: vsaNarrowSpreadThreshold ?? this.vsaNarrowSpreadThreshold,
+      vsaCloseNearTopThreshold: vsaCloseNearTopThreshold ?? this.vsaCloseNearTopThreshold,
+      vsaCloseNearBottomThreshold: vsaCloseNearBottomThreshold ?? this.vsaCloseNearBottomThreshold,
       atrPeriod: atrPeriod ?? this.atrPeriod,
       atrMultiplier: atrMultiplier ?? this.atrMultiplier,
       minRR: minRR ?? this.minRR,
@@ -154,6 +187,14 @@ class StrategySettings {
         'rsiOversold': rsiOversold,
         'bbPeriod': bbPeriod,
         'bbStdDev': bbStdDev,
+        'vsaLookback': vsaLookback,
+        'vsaHighVolThreshold': vsaHighVolThreshold,
+        'vsaVeryHighVolThreshold': vsaVeryHighVolThreshold,
+        'vsaLowVolThreshold': vsaLowVolThreshold,
+        'vsaWideSpreadThreshold': vsaWideSpreadThreshold,
+        'vsaNarrowSpreadThreshold': vsaNarrowSpreadThreshold,
+        'vsaCloseNearTopThreshold': vsaCloseNearTopThreshold,
+        'vsaCloseNearBottomThreshold': vsaCloseNearBottomThreshold,
         'atrPeriod': atrPeriod,
         'atrMultiplier': atrMultiplier,
         'minRR': minRR,

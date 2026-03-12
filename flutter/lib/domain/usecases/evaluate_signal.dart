@@ -94,7 +94,17 @@ Signal evaluateSignal(
   int? vsaScore;
   VsaResult? vsaResult;
   if (ai['vsa'] ?? true) {
-    vsaResult = calculateVsa(candles);
+    vsaResult = calculateVsa(
+      candles,
+      lookback: settings.vsaLookback,
+      highVolThreshold: settings.vsaHighVolThreshold,
+      veryHighVolThreshold: settings.vsaVeryHighVolThreshold,
+      lowVolThreshold: settings.vsaLowVolThreshold,
+      wideSpreadThreshold: settings.vsaWideSpreadThreshold,
+      narrowSpreadThreshold: settings.vsaNarrowSpreadThreshold,
+      closeNearTopThreshold: settings.vsaCloseNearTopThreshold,
+      closeNearBottomThreshold: settings.vsaCloseNearBottomThreshold,
+    );
     if (vsaResult.bullish == true) vsaScore = 1;
     else if (vsaResult.bullish == false) vsaScore = -1;
     else vsaScore = 0;

@@ -223,8 +223,18 @@ List<double> calculateAtr(List<Candle> candles, int period) {
 // ---------- VSA (Volume Spread Analysis) ----------
 /// Analyses the last candle in [candles] using the 20-candle average volume
 /// and average spread as reference levels.
-VsaResult calculateVsa(List<Candle> candles) {
-  if (candles.length < 20) {
+VsaResult calculateVsa(
+  List<Candle> candles, {
+  int lookback = 20,
+  double highVolThreshold = 1.5,
+  double veryHighVolThreshold = 2.0,
+  double lowVolThreshold = 0.7,
+  double wideSpreadThreshold = 1.3,
+  double narrowSpreadThreshold = 0.7,
+  double closeNearTopThreshold = 0.6,
+  double closeNearBottomThreshold = 0.4,
+}) {
+  if (candles.length < lookback) {
     return const VsaResult(
       pattern: VsaPattern.normal,
       bullish: null,
@@ -234,16 +244,17 @@ VsaResult calculateVsa(List<Candle> candles) {
     );
   }
 
-  final recent = candles.sublist(candles.length - 20);
+  final recent = candles.sublist(candles.length - lookback);
   final last = candles.last;
 
   // Average volume (exclude last candle from the avg window)
-  final prevCandles = recent.sublist(0, 19);
-  final avgVol = prevCandles.map((c) => c.volume).reduce((a, b) => a + b) / 19;
+  final prevCandles = recent.sublist(0, lookback - 1);
+  final prevLen = prevCandles.length.toDouble();
+  final avgVol = prevCandles.map((c) => c.volume).reduce((a, b) => a + b) / prevLen;
   final avgSpread = prevCandles
           .map((c) => c.high - c.low)
           .reduce((a, b) => a + b) /
-      19;
+      prevLen;
 
   final spread = last.high - last.low;
   final volRatio = avgVol > 0 ? last.volume / avgVol : 1.0;
@@ -252,15 +263,15 @@ VsaResult calculateVsa(List<Candle> candles) {
   // Close position within the candle (0 = at low, 1 = at high)
   final closePos = spread > 0 ? (last.close - last.low) / spread : 0.5;
 
-  final highVol = volRatio > 1.5;
-  final veryHighVol = volRatio > 2.0;
-  final lowVol = volRatio < 0.7;
-  final wideSpread = spreadRatio > 1.3;
-  final narrowSpread = spreadRatio < 0.7;
+  final highVol = volRatio > highVolThreshold;
+  final veryHighVol = volRatio > veryHighVolThreshold;
+  final lowVol = volRatio < lowVolThreshold;
+  final wideSpread = spreadRatio > wideSpreadThreshold;
+  final narrowSpread = spreadRatio < narrowSpreadThreshold;
   final isUp = last.close > last.open;
   final isDown = last.close < last.open;
-  final closeNearTop = closePos > 0.6;
-  final closeNearBottom = closePos < 0.4;
+  final closeNearTop = closePos > closeNearTopThreshold;
+  final closeNearBottom = closePos < closeNearBottomThreshold;
 
   VsaPattern pattern;
   bool? bullish;
