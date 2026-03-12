@@ -565,6 +565,40 @@ class _StrategySection extends StatelessWidget {
             format: (v) => v.toStringAsFixed(0),
             onChanged: (v) => onChanged(settings.copyWith(rsiNeutralHigh: v)),
           ),
+          const SizedBox(height: 4),
+          _SectionDivider(label: 'MACD Parameters'),
+          _SliderTile(
+            label: 'MACD Fast Period',
+            value: settings.macdFast.toDouble(),
+            min: 5,
+            max: 20,
+            divisions: 15,
+            format: (v) => v.toInt().toString(),
+            hint: 'Short EMA — standard: 12',
+            onChanged: (v) => onChanged(settings.copyWith(macdFast: v.toInt())),
+          ),
+          _SliderTile(
+            label: 'MACD Slow Period',
+            value: settings.macdSlow.toDouble(),
+            min: 15,
+            max: 50,
+            divisions: 35,
+            format: (v) => v.toInt().toString(),
+            hint: 'Long EMA — standard: 26',
+            onChanged: (v) => onChanged(settings.copyWith(macdSlow: v.toInt())),
+          ),
+          _SliderTile(
+            label: 'MACD Signal Period',
+            value: settings.macdSignal.toDouble(),
+            min: 3,
+            max: 15,
+            divisions: 12,
+            format: (v) => v.toInt().toString(),
+            hint: 'Signal line smoothing — standard: 9',
+            onChanged: (v) => onChanged(settings.copyWith(macdSignal: v.toInt())),
+          ),
+          const SizedBox(height: 4),
+          _SectionDivider(label: 'Bollinger Bands Parameters'),
           _SliderTile(
             label: 'BB Period',
             value: settings.bbPeriod.toDouble(),
@@ -816,6 +850,7 @@ class _SliderTile extends StatelessWidget {
   final int divisions;
   final String Function(double) format;
   final ValueChanged<double> onChanged;
+  final String? hint;
 
   const _SliderTile({
     required this.label,
@@ -825,6 +860,7 @@ class _SliderTile extends StatelessWidget {
     required this.divisions,
     required this.format,
     required this.onChanged,
+    this.hint,
   });
 
   @override
@@ -838,6 +874,8 @@ class _SliderTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label, style: const TextStyle(color: kTextSecondary, fontSize: 12)),
+                if (hint != null)
+                  Text(hint!, style: const TextStyle(color: kTextSecondary, fontSize: 10)),
                 Slider(
                   value: value.clamp(min, max),
                   min: min,
@@ -866,6 +904,31 @@ class _SliderTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SectionDivider extends StatelessWidget {
+  final String label;
+  const _SectionDivider({required this.label});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 4),
+        child: Row(
+          children: [
+            Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                color: kTextSecondary,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Expanded(child: Divider(color: kDividerColor, height: 1)),
+          ],
+        ),
+      );
 }
 
 // ── Switch Tile ───────────────────────────────────────────────────────────────
