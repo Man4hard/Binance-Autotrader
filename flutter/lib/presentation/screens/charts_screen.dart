@@ -482,91 +482,90 @@ class _IndicatorCardsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final last = candles.last;
-    final ind = signal.indicators;
+    final s = signal;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Overall signal header ──────────────────────────────────
+        // ── Overall signal header ─────────────────────────────
         _SectionHeader('Overall Signal'),
-        _BigSignalCard(signal: signal, lastClose: last.close),
+        _BigSignalCard(signal: s, lastClose: last.close),
         const SizedBox(height: 16),
 
-        // ── Trend indicators ─────────────────────────────────────
-        _SectionHeader('Trend'),
+        // ── Trend ────────────────────────────────────────────
+        _SectionHeader('Trend (EMA)'),
         Row(
           children: [
             Expanded(
               child: _IndicatorCard(
-                label: 'EMA 20',
-                value: ind['ema20'] != null
-                    ? '\$${(ind['ema20'] as double).toStringAsFixed(4)}'
-                    : '—',
-                subtitle: ind['ema20'] != null
-                    ? (last.close > (ind['ema20'] as double)
-                        ? 'Price above EMA ↑'
-                        : 'Price below EMA ↓')
-                    : null,
-                color: ind['ema20'] != null
-                    ? (last.close > (ind['ema20'] as double)
-                        ? kProfitColor
-                        : kDangerColor)
-                    : kTextSecondary,
+                label: 'EMA 9',
+                value: '\$${s.ema9.toStringAsFixed(4)}',
+                subtitle: last.close > s.ema9
+                    ? 'Price above ↑'
+                    : 'Price below ↓',
+                color: last.close > s.ema9 ? kProfitColor : kDangerColor,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: _IndicatorCard(
-                label: 'EMA 50',
-                value: ind['ema50'] != null
-                    ? '\$${(ind['ema50'] as double).toStringAsFixed(4)}'
-                    : '—',
-                subtitle: ind['ema50'] != null
-                    ? (last.close > (ind['ema50'] as double)
-                        ? 'Price above EMA ↑'
-                        : 'Price below EMA ↓')
-                    : null,
-                color: ind['ema50'] != null
-                    ? (last.close > (ind['ema50'] as double)
-                        ? kProfitColor
-                        : kDangerColor)
-                    : kTextSecondary,
+                label: 'EMA 21',
+                value: '\$${s.ema21.toStringAsFixed(4)}',
+                subtitle: last.close > s.ema21
+                    ? 'Price above ↑'
+                    : 'Price below ↓',
+                color: last.close > s.ema21 ? kProfitColor : kDangerColor,
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
+        _IndicatorCard(
+          label: 'EMA 50',
+          value: '\$${s.ema50.toStringAsFixed(4)}',
+          subtitle: last.close > s.ema50
+              ? 'Price above EMA 50 — bullish trend'
+              : 'Price below EMA 50 — bearish trend',
+          color: last.close > s.ema50 ? kProfitColor : kDangerColor,
+        ),
+        const SizedBox(height: 8),
 
-        // ── Momentum ────────────────────────────────────────────
+        // ── Momentum ─────────────────────────────────────────
         _SectionHeader('Momentum'),
         Row(
           children: [
+            Expanded(child: _RsiCard(rsi: s.rsi)),
+            const SizedBox(width: 8),
+            Expanded(child: _MacdCard(hist: s.macdHist)),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // ── Volatility ───────────────────────────────────────
+        _SectionHeader('Volatility'),
+        Row(
+          children: [
             Expanded(
-              child: _RsiCard(rsi: ind['rsi'] as double?),
+              child: _IndicatorCard(
+                label: 'ATR',
+                value: s.atrValue.toStringAsFixed(4),
+                subtitle: 'Average True Range',
+                color: kTextPrimary,
+              ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: _MacdCard(
-                macd: ind['macd'] as double?,
-                signal: ind['macdSignal'] as double?,
-                hist: ind['macdHist'] as double?,
+              child: _ScoreCard(
+                label: 'BB Score',
+                score: s.bbScore,
+                icon: Icons.candlestick_chart,
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
 
-        // ── Volatility ──────────────────────────────────────────
-        _SectionHeader('Volatility'),
-        _BbCard(
-          upper: ind['bbUpper'] as double?,
-          middle: ind['bbMiddle'] as double?,
-          lower: ind['bbLower'] as double?,
-          close: last.close,
-        ),
-        const SizedBox(height: 8),
-
-        // ── Volume / VSA ─────────────────────────────────────────
+        // ── Volume & VSA ──────────────────────────────────────
         _SectionHeader('Volume & VSA'),
         Row(
           children: [
@@ -574,33 +573,25 @@ class _IndicatorCardsGrid extends StatelessWidget {
               child: _IndicatorCard(
                 label: 'Volume',
                 value: _fmt(last.volume),
-                subtitle: ind['avgVolume'] != null
-                    ? (last.volume > (ind['avgVolume'] as double)
-                        ? 'Above average ↑'
-                        : 'Below average ↓')
+                subtitle: s.vsaVolRatio != null
+                    ? 'Ratio vs avg: ${s.vsaVolRatio!.toStringAsFixed(2)}x'
                     : null,
-                color: ind['avgVolume'] != null
-                    ? (last.volume > (ind['avgVolume'] as double)
-                        ? kProfitColor
-                        : kTextSecondary)
-                    : kTextSecondary,
+                color: s.vsaVolRatio != null && s.vsaVolRatio! > 1.2
+                    ? kProfitColor
+                    : kTextPrimary,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: _IndicatorCard(
-                label: 'VSA Signal',
-                value: ind['vsaSignal'] != null
-                    ? '${ind['vsaSignal']}'
-                    : '—',
-                subtitle: ind['vsaStrength'] != null
-                    ? 'Strength: ${ind['vsaStrength']}'
+                label: 'VSA Pattern',
+                value: s.vsaPattern,
+                subtitle: s.vsaBullish != null
+                    ? (s.vsaBullish! ? 'Bullish VSA' : 'Bearish VSA')
                     : null,
-                color: ind['vsaSignal'] != null &&
-                        ind['vsaSignal'].toString().toLowerCase().contains('bull')
+                color: s.vsaBullish == true
                     ? kProfitColor
-                    : ind['vsaSignal'] != null &&
-                            ind['vsaSignal'].toString().toLowerCase().contains('bear')
+                    : s.vsaBullish == false
                         ? kDangerColor
                         : kTextSecondary,
               ),
@@ -609,7 +600,22 @@ class _IndicatorCardsGrid extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        // ── Price info ──────────────────────────────────────────
+        // ── Indicator scores ──────────────────────────────────
+        _SectionHeader('Indicator Scores'),
+        Row(
+          children: [
+            Expanded(child: _ScoreCard(label: 'EMA', score: s.emaScore, icon: Icons.show_chart)),
+            const SizedBox(width: 6),
+            Expanded(child: _ScoreCard(label: 'MACD', score: s.macdScore, icon: Icons.bar_chart)),
+            const SizedBox(width: 6),
+            Expanded(child: _ScoreCard(label: 'RSI', score: s.rsiScore, icon: Icons.speed)),
+            const SizedBox(width: 6),
+            Expanded(child: _ScoreCard(label: 'VSA', score: s.vsaScore, icon: Icons.volume_up)),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // ── Price ─────────────────────────────────────────────
         _SectionHeader('Price'),
         Row(
           children: [
@@ -719,8 +725,19 @@ class _BigSignalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isBuy = signal.action == 'BUY';
-    final color = isBuy ? kProfitColor : kDangerColor;
+    final isBuy = signal.action == SignalAction.buy;
+    final isHold = signal.action == SignalAction.none;
+    final color = isBuy
+        ? kProfitColor
+        : isHold
+            ? kWarningColor
+            : kDangerColor;
+    final icon = isBuy
+        ? Icons.trending_up
+        : isHold
+            ? Icons.trending_flat
+            : Icons.trending_down;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -731,25 +748,21 @@ class _BigSignalCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            isBuy ? Icons.trending_up : Icons.trending_down,
-            color: color,
-            size: 32,
-          ),
+          Icon(icon, color: color, size: 32),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  signal.action,
+                  signal.actionLabel,
                   style: TextStyle(
                       color: color,
                       fontSize: 20,
                       fontWeight: FontWeight.w800),
                 ),
                 Text(
-                  'Score ${signal.score.toStringAsFixed(1)} · ${signal.symbol}',
+                  'Bull ${signal.bullScore} · Bear ${signal.bearScore} / ${signal.maxScore}',
                   style: const TextStyle(
                       color: kTextSecondary, fontSize: 12),
                 ),
@@ -766,18 +779,11 @@ class _BigSignalCard extends StatelessWidget {
                     fontSize: 13,
                     fontWeight: FontWeight.w600),
               ),
-              if (signal.stopLoss != null)
-                Text(
-                  'SL \$${signal.stopLoss!.toStringAsFixed(4)}',
-                  style: const TextStyle(
-                      color: kDangerColor, fontSize: 11),
-                ),
-              if (signal.takeProfit != null)
-                Text(
-                  'TP \$${signal.takeProfit!.toStringAsFixed(4)}',
-                  style: const TextStyle(
-                      color: kProfitColor, fontSize: 11),
-                ),
+              Text(
+                signal.timeframe,
+                style: const TextStyle(
+                    color: kTextSecondary, fontSize: 11),
+              ),
             ],
           ),
         ],
@@ -851,19 +857,13 @@ class _RsiCard extends StatelessWidget {
 }
 
 class _MacdCard extends StatelessWidget {
-  final double? macd;
-  final double? signal;
-  final double? hist;
-  const _MacdCard({this.macd, this.signal, this.hist});
+  final double hist;
+  const _MacdCard({required this.hist});
 
   @override
   Widget build(BuildContext context) {
-    final bullish = hist != null && hist! > 0;
-    final color = hist == null
-        ? kTextSecondary
-        : bullish
-            ? kProfitColor
-            : kDangerColor;
+    final bullish = hist > 0;
+    final color = bullish ? kProfitColor : kDangerColor;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -874,30 +874,72 @@ class _MacdCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('MACD',
+          const Text('MACD Histogram',
               style: TextStyle(
                   color: kTextSecondary,
                   fontSize: 10,
                   fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           Text(
-            macd != null ? macd!.toStringAsFixed(4) : '—',
+            '${hist >= 0 ? '+' : ''}${hist.toStringAsFixed(6)}',
             style: TextStyle(
                 color: color,
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: FontWeight.w700),
           ),
-          if (hist != null)
-            Text(
-              'Hist: ${hist! >= 0 ? '+' : ''}${hist!.toStringAsFixed(4)}',
-              style: TextStyle(color: color, fontSize: 10),
-            ),
-          if (signal != null)
-            Text(
-              'Signal: ${signal!.toStringAsFixed(4)}',
+          const SizedBox(height: 4),
+          Text(
+            bullish ? 'Bullish momentum ↑' : 'Bearish momentum ↓',
+            style: TextStyle(color: color, fontSize: 10),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScoreCard extends StatelessWidget {
+  final String label;
+  final int? score;
+  final IconData icon;
+  const _ScoreCard({required this.label, required this.score, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = score == null
+        ? kTextSecondary
+        : score! > 0
+            ? kProfitColor
+            : score! < 0
+                ? kDangerColor
+                : kTextSecondary;
+    final text = score == null
+        ? 'OFF'
+        : score! > 0
+            ? 'BULL'
+            : score! < 0
+                ? 'BEAR'
+                : 'NEUT';
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: kDividerColor),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(height: 4),
+          Text(label,
               style: const TextStyle(
-                  color: kTextSecondary, fontSize: 10),
-            ),
+                  color: kTextSecondary, fontSize: 9,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 2),
+          Text(text,
+              style: TextStyle(
+                  color: color, fontSize: 10,
+                  fontWeight: FontWeight.w700)),
         ],
       ),
     );
