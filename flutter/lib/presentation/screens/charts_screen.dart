@@ -544,7 +544,7 @@ class _SymbolPickerSheetState extends State<_SymbolPickerSheet> {
                   )
                 : ListView.builder(
                     itemCount: _filtered.length,
-                    itemExtent: 52,
+                    itemExtent: 60,
                     itemBuilder: (ctx, i) {
                       final sym = _filtered[i];
                       final base =
