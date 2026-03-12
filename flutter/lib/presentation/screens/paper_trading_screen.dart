@@ -78,7 +78,7 @@ class PaperTradingScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: BalanceCard(
-              balance: paperBalance.valueOrNull ?? 1000.0,
+              balance: paperBalance.value ?? 1000.0,
               dailyPnl: paperPnl,
               isPaper: true,
               isLoading: paperBalance.isLoading,

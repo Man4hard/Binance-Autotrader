@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/trade.dart';
 import '../../domain/repositories/trade_repository.dart';
+import 'repository_providers.dart';
 
 enum HistoryFilter { all, paper, live }
 
@@ -49,11 +50,14 @@ class TradeHistoryState {
   }
 }
 
-class TradeHistoryNotifier extends StateNotifier<TradeHistoryState> {
-  final TradeRepository _repo;
+class TradeHistoryNotifier extends Notifier<TradeHistoryState> {
+  late TradeRepository _repo;
 
-  TradeHistoryNotifier(this._repo) : super(const TradeHistoryState()) {
-    loadHistory();
+  @override
+  TradeHistoryState build() {
+    _repo = ref.read(tradeRepositoryProvider);
+    Future(() => loadHistory());
+    return const TradeHistoryState();
   }
 
   Future<void> loadHistory() async {

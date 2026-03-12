@@ -13,8 +13,9 @@ class SignalState {
   Signal? getSignal(String symbol) => signals[symbol];
 }
 
-class SignalNotifier extends StateNotifier<SignalState> {
-  SignalNotifier() : super(const SignalState());
+class SignalNotifier extends Notifier<SignalState> {
+  @override
+  SignalState build() => const SignalState();
 
   void updateSignal(Signal signal) {
     final updated = Map<String, Signal>.from(state.signals);

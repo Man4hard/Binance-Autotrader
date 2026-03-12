@@ -233,7 +233,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   double _getPaperBalance(WidgetRef ref) {
     final balance = ref.watch(paperBalanceProvider);
-    return balance.valueOrNull ?? 1000.0;
+    return balance.value ?? 1000.0;
   }
 }
 

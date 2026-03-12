@@ -1,15 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 
-import '../../data/datasources/binance_rest_client.dart';
-import '../../data/repositories/binance_repository_impl.dart';
-import '../../data/repositories/hive_trade_repository.dart';
-import '../../data/repositories/hive_settings_repository.dart';
-import '../../data/repositories/secure_storage_repository_impl.dart';
-import '../../domain/repositories/binance_repository.dart';
-import '../../domain/repositories/trade_repository.dart';
-import '../../domain/repositories/settings_repository.dart';
-import '../../domain/repositories/secure_storage_repository.dart';
+import 'repository_providers.dart';
 import 'strategy_settings_notifier.dart';
 import 'account_balance_notifier.dart';
 import 'active_trades_notifier.dart';
@@ -17,70 +8,41 @@ import 'trade_history_notifier.dart';
 import 'signal_notifier.dart';
 import 'daily_stats_notifier.dart';
 
-final restClientProvider = Provider<BinanceRestClient>((ref) {
-  return BinanceRestClient();
-});
-
-final binanceRepositoryProvider = Provider<BinanceRepository>((ref) {
-  final client = ref.watch(restClientProvider);
-  return BinanceRepositoryImpl(client);
-});
-
-final tradeRepositoryProvider = Provider<TradeRepository>((ref) {
-  return HiveTradeRepository();
-});
-
-final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
-  return HiveSettingsRepository();
-});
-
-final secureStorageProvider = Provider<SecureStorageRepository>((ref) {
-  return const SecureStorageRepositoryImpl();
-});
-
-final backgroundServiceProvider = Provider<FlutterBackgroundService>((ref) {
-  return FlutterBackgroundService();
-});
+export 'repository_providers.dart';
 
 final strategySettingsProvider =
-    StateNotifierProvider<StrategySettingsNotifier, StrategySettingsState>((ref) {
-  final repo = ref.watch(settingsRepositoryProvider);
-  return StrategySettingsNotifier(repo);
-});
+    NotifierProvider<StrategySettingsNotifier, StrategySettingsState>(
+        StrategySettingsNotifier.new);
 
 final accountBalanceProvider =
-    StateNotifierProvider<AccountBalanceNotifier, AccountBalanceState>((ref) {
-  final repo = ref.watch(binanceRepositoryProvider);
-  final secure = ref.watch(secureStorageProvider);
-  return AccountBalanceNotifier(repo, secure);
-});
+    NotifierProvider<AccountBalanceNotifier, AccountBalanceState>(
+        AccountBalanceNotifier.new);
 
 final activeTradesProvider =
-    StateNotifierProvider<ActiveTradesNotifier, ActiveTradesState>((ref) {
-  final repo = ref.watch(tradeRepositoryProvider);
-  return ActiveTradesNotifier(repo);
-});
+    NotifierProvider<ActiveTradesNotifier, ActiveTradesState>(
+        ActiveTradesNotifier.new);
 
 final tradeHistoryProvider =
-    StateNotifierProvider<TradeHistoryNotifier, TradeHistoryState>((ref) {
-  final repo = ref.watch(tradeRepositoryProvider);
-  return TradeHistoryNotifier(repo);
-});
+    NotifierProvider<TradeHistoryNotifier, TradeHistoryState>(
+        TradeHistoryNotifier.new);
 
 final signalProvider =
-    StateNotifierProvider<SignalNotifier, SignalState>((ref) {
-  return SignalNotifier();
-});
+    NotifierProvider<SignalNotifier, SignalState>(SignalNotifier.new);
 
 final dailyStatsProvider =
-    StateNotifierProvider<DailyStatsNotifier, DailyStatsState>((ref) {
-  final repo = ref.watch(tradeRepositoryProvider);
-  return DailyStatsNotifier(repo);
-});
+    NotifierProvider<DailyStatsNotifier, DailyStatsState>(
+        DailyStatsNotifier.new);
 
-final engineRunningProvider = StateProvider<bool>((ref) => false);
+class _EngineRunning extends Notifier<bool> {
+  @override
+  bool build() => false;
+}
 
-final apiCredentialsProvider = FutureProvider<({String? apiKey, String? secret})>((ref) async {
+final engineRunningProvider =
+    NotifierProvider<_EngineRunning, bool>(_EngineRunning.new);
+
+final apiCredentialsProvider =
+    FutureProvider<({String? apiKey, String? secret})>((ref) async {
   final secure = ref.watch(secureStorageProvider);
   final apiKey = await secure.getApiKey();
   final secret = await secure.getSecretKey();

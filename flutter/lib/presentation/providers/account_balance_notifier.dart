@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/account_balance.dart';
 import '../../domain/repositories/binance_repository.dart';
 import '../../domain/repositories/secure_storage_repository.dart';
+import 'repository_providers.dart';
 
 class AccountBalanceState {
   final AccountBalance? balance;
@@ -27,12 +28,16 @@ class AccountBalanceState {
       );
 }
 
-class AccountBalanceNotifier extends StateNotifier<AccountBalanceState> {
-  final BinanceRepository _repo;
-  final SecureStorageRepository _secure;
+class AccountBalanceNotifier extends Notifier<AccountBalanceState> {
+  late BinanceRepository _repo;
+  late SecureStorageRepository _secure;
 
-  AccountBalanceNotifier(this._repo, this._secure)
-      : super(const AccountBalanceState());
+  @override
+  AccountBalanceState build() {
+    _repo = ref.read(binanceRepositoryProvider);
+    _secure = ref.read(secureStorageProvider);
+    return const AccountBalanceState();
+  }
 
   Future<void> refresh() async {
     state = state.copyWith(isLoading: true, error: null);

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/trade.dart';
 import '../../domain/repositories/trade_repository.dart';
+import 'repository_providers.dart';
 
 class ActiveTradesState {
   final List<Trade> trades;
@@ -26,11 +27,14 @@ class ActiveTradesState {
       );
 }
 
-class ActiveTradesNotifier extends StateNotifier<ActiveTradesState> {
-  final TradeRepository _repo;
+class ActiveTradesNotifier extends Notifier<ActiveTradesState> {
+  late TradeRepository _repo;
 
-  ActiveTradesNotifier(this._repo) : super(const ActiveTradesState()) {
-    loadTrades();
+  @override
+  ActiveTradesState build() {
+    _repo = ref.read(tradeRepositoryProvider);
+    Future(() => loadTrades());
+    return const ActiveTradesState();
   }
 
   Future<void> loadTrades({bool? isPaper}) async {

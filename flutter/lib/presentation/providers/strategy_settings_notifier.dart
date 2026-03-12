@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/strategy_settings.dart';
 import '../../domain/repositories/settings_repository.dart';
+import 'repository_providers.dart';
 
 class StrategySettingsState {
   final StrategySettings settings;
@@ -26,13 +27,14 @@ class StrategySettingsState {
       );
 }
 
-class StrategySettingsNotifier
-    extends StateNotifier<StrategySettingsState> {
-  final SettingsRepository _repo;
+class StrategySettingsNotifier extends Notifier<StrategySettingsState> {
+  late SettingsRepository _repo;
 
-  StrategySettingsNotifier(this._repo)
-      : super(const StrategySettingsState(settings: StrategySettings())) {
-    loadSettings();
+  @override
+  StrategySettingsState build() {
+    _repo = ref.read(settingsRepositoryProvider);
+    Future(() => loadSettings());
+    return const StrategySettingsState(settings: StrategySettings());
   }
 
   Future<void> loadSettings() async {

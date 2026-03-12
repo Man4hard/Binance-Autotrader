@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/daily_stats.dart';
 import '../../domain/repositories/trade_repository.dart';
 import '../../domain/usecases/get_daily_stats_usecase.dart';
+import 'repository_providers.dart';
 
 class DailyStatsState {
   final DailyStats todayStats;
@@ -27,15 +28,17 @@ class DailyStatsState {
       );
 }
 
-class DailyStatsNotifier extends StateNotifier<DailyStatsState> {
-  final TradeRepository _repo;
+class DailyStatsNotifier extends Notifier<DailyStatsState> {
+  late TradeRepository _repo;
 
-  DailyStatsNotifier(this._repo)
-      : super(DailyStatsState(
-          todayStats: DailyStats.empty(),
-          allTimeStats: DailyStats.empty(),
-        )) {
-    refresh();
+  @override
+  DailyStatsState build() {
+    _repo = ref.read(tradeRepositoryProvider);
+    Future(() => refresh());
+    return DailyStatsState(
+      todayStats: DailyStats.empty(),
+      allTimeStats: DailyStats.empty(),
+    );
   }
 
   Future<void> refresh({bool isPaper = true}) async {
