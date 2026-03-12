@@ -31,8 +31,8 @@ dependencies:
   flutter_background_service: ^5.0.9
   flutter_background_service_android: ^6.2.4
 
-  # Notifications
-  flutter_local_notifications: ^18.0.1
+  # Notifications — pinned to 17.x (stable positional-arg API)
+  flutter_local_notifications: ^17.2.4
 
   # Charts
   fl_chart: ^0.70.2
@@ -53,6 +53,13 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+
+# Force riverpod ecosystem to 2.x — our code uses StateNotifier/StateProvider
+# which were removed in riverpod 3.x
+dependency_overrides:
+  riverpod: ">=2.6.1 <3.0.0"
+  flutter_riverpod: ">=2.6.1 <3.0.0"
+  riverpod_annotation: ">=2.3.5 <3.0.0"
 
 flutter:
   uses-material-design: true
