@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'presentation/navigation/main_shell.dart';
+import 'presentation/screens/splash_screen.dart';
 import 'presentation/theme/app_theme.dart';
 
 class CryptoBotApp extends ConsumerWidget {
@@ -12,7 +12,7 @@ class CryptoBotApp extends ConsumerWidget {
     return MaterialApp(
       title: 'CryptoBot',
       theme: appTheme,
-      home: const MainShell(),
+      home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
