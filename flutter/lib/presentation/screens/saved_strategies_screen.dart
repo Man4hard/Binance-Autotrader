@@ -358,13 +358,18 @@ class _StrategyCard extends StatelessWidget {
               children: [
                 _Tag(
                     '${s.timeframe} timeframe', kProfitColor.withValues(alpha: 0.15), kProfitColor),
-                _Tag('EMA ${s.emaPeriod1}/${s.emaPeriod2}/${s.emaPeriod3}',
-                    kCardColor, kTextSecondary),
-                _Tag(
-                    'MACD ${s.macdFast}/${s.macdSlow}/${s.macdSignal}',
-                    kCardColor,
-                    kTextSecondary),
-                _Tag('RSI ${s.rsiPeriod}', kCardColor, kTextSecondary),
+                if (s.activeIndicators['ema'] == true)
+                  _Tag('EMA ${s.emaPeriod1}/${s.emaPeriod2}/${s.emaPeriod3}',
+                      kCardColor, kTextSecondary),
+                if (s.activeIndicators['macd'] == true)
+                  _Tag(
+                      'MACD ${s.macdFast}/${s.macdSlow}/${s.macdSignal}',
+                      kCardColor,
+                      kTextSecondary),
+                if (s.activeIndicators['rsi'] == true)
+                  _Tag('RSI ${s.rsiPeriod}', kCardColor, kTextSecondary),
+                if (s.activeIndicators['bb'] == true)
+                  _Tag('BB ${s.bbPeriod}', kCardColor, kTextSecondary),
                 if (s.activeIndicators['vsa'] == true)
                   _Tag('VSA', kCardColor, kTextSecondary),
                 _Tag(s.isPaperMode ? 'Paper' : 'Live',
