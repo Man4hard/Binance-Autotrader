@@ -39,13 +39,14 @@ final dailyStatsProvider =
     NotifierProvider<DailyStatsNotifier, DailyStatsState>(
         DailyStatsNotifier.new);
 
-class _EngineRunning extends Notifier<bool> {
+/// Public so main.dart can subclass it to restore state after process death.
+class EngineRunningNotifier extends Notifier<bool> {
   @override
   bool build() => false;
 }
 
 final engineRunningProvider =
-    NotifierProvider<_EngineRunning, bool>(_EngineRunning.new);
+    NotifierProvider<EngineRunningNotifier, bool>(EngineRunningNotifier.new);
 
 final apiCredentialsProvider =
     FutureProvider<({String? apiKey, String? secret})>((ref) async {

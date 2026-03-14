@@ -9,6 +9,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- Keep CPU awake during trading interval checks -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- Prevent Android from killing service on low memory -->
+    <uses-permission android:name="android.permission.REQUEST_COMPANION_RUN_IN_BACKGROUND"/>
 
     <application
         android:label="CryptoBot"
@@ -34,17 +38,24 @@
             </intent-filter>
         </activity>
 
+        <!--
+          stopWithTask="false" → service SURVIVES when user swipes app from recents.
+          This is the most critical fix for 24/7 background trading.
+        -->
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:foregroundServiceType="dataSync"
             android:exported="false"
-            tools:replace="android:exported"/>
+            android:stopWithTask="false"
+            tools:replace="android:exported,android:stopWithTask"/>
 
         <receiver
             android:name="id.flutter.flutter_background_service.BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <!-- Also restart after app updates -->
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
             </intent-filter>
         </receiver>
 
