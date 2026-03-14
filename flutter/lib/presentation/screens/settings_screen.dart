@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../widgets/confirmation_dialog.dart';
 import '../widgets/error_snackbar.dart';
 import '../widgets/loading_overlay.dart';
+import 'saved_strategies_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -131,6 +132,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.only(bottom: 100),
           children: [
+            _SavedStrategiesBanner(settings: settings),
             _SectionHeader(title: '🔑 API Keys', subtitle: 'Stored securely in Android Keystore'),
             _ApiKeysSection(
               apiKeyController: _apiKeyController,
@@ -177,6 +179,160 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
     );
+  }
+}
+
+// ── Saved Strategies Banner ───────────────────────────────────────────────────
+class _SavedStrategiesBanner extends ConsumerWidget {
+  final StrategySettings settings;
+  const _SavedStrategiesBanner({required this.settings});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(savedStrategiesProvider).length;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            kProfitColor.withValues(alpha: 0.12),
+            kProfitColor.withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kProfitColor.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 16),
+          const Icon(Icons.bookmark, color: kProfitColor, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 14),
+                const Text('Saved Strategies',
+                    style: TextStyle(
+                        color: kTextPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(
+                  count == 0
+                      ? 'No saved strategies yet'
+                      : '$count saved ${count == 1 ? "strategy" : "strategies"}',
+                  style: const TextStyle(color: kTextSecondary, fontSize: 12),
+                ),
+                const SizedBox(height: 14),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            children: [
+              TextButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const SavedStrategiesScreen()),
+                ),
+                child: const Text('View All',
+                    style: TextStyle(color: kProfitColor, fontSize: 12)),
+              ),
+              TextButton(
+                onPressed: () => _quickSave(context, ref),
+                style: TextButton.styleFrom(
+                  backgroundColor: kProfitColor,
+                  foregroundColor: kBgColor,
+                  minimumSize: const Size(80, 32),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Save',
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+          const SizedBox(width: 12),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _quickSave(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController(
+      text:
+          'Strategy ${DateTime.now().day}/${DateTime.now().month} ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+    );
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kSurfaceColor,
+        title: const Text('Save Strategy',
+            style:
+                TextStyle(color: kTextPrimary, fontWeight: FontWeight.w700)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: kTextPrimary),
+          decoration: InputDecoration(
+            hintText: 'e.g. EMA Scalp 5-12-20',
+            hintStyle:
+                TextStyle(color: kTextSecondary.withValues(alpha: 0.5)),
+            filled: true,
+            fillColor: kCardColor,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: kDividerColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: kProfitColor),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child:
+                const Text('Cancel', style: TextStyle(color: kTextSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kProfitColor,
+              foregroundColor: kBgColor,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              final n = controller.text.trim();
+              if (n.isNotEmpty) Navigator.pop(ctx, n);
+            },
+            child: const Text('Save',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+
+    if (name != null && context.mounted) {
+      await ref
+          .read(savedStrategiesProvider.notifier)
+          .saveStrategy(name, settings);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('"$name" saved'),
+          backgroundColor: kProfitColor,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ));
+      }
+    }
   }
 }
 

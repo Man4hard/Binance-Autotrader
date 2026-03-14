@@ -7,6 +7,7 @@ import 'active_trades_notifier.dart';
 import 'trade_history_notifier.dart';
 import 'signal_notifier.dart';
 import 'daily_stats_notifier.dart';
+import 'saved_strategies_notifier.dart';
 
 export 'repository_providers.dart';
 export 'strategy_settings_notifier.dart';
@@ -15,6 +16,7 @@ export 'active_trades_notifier.dart';
 export 'trade_history_notifier.dart';
 export 'signal_notifier.dart';
 export 'daily_stats_notifier.dart';
+export 'saved_strategies_notifier.dart';
 
 final strategySettingsProvider =
     NotifierProvider<StrategySettingsNotifier, StrategySettingsState>(

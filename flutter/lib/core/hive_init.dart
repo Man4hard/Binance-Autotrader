@@ -23,4 +23,5 @@ Future<void> initHive() async {
   await Hive.openBox<TradeHiveModel>('paper_trades');
   await Hive.openBox<StrategySettingsHiveModel>('settings');
   await Hive.openBox<DailyStatsHiveModel>('daily_stats');
+  await Hive.openBox<String>('saved_strategies');
 }

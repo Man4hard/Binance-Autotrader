@@ -171,6 +171,53 @@ class StrategySettings {
     );
   }
 
+  factory StrategySettings.fromJson(Map<String, dynamic> j) {
+    MarketTypeMode mt = MarketTypeMode.spot;
+    try { mt = MarketTypeMode.values.byName(j['marketType'] as String? ?? 'spot'); } catch (_) {}
+    Map<String, bool> ai = Map<String, bool>.from(AppConstants.defaultActiveIndicators);
+    if (j['activeIndicators'] is Map) {
+      (j['activeIndicators'] as Map).forEach((k, v) { if (v is bool) ai[k as String] = v; });
+    }
+    return StrategySettings(
+      symbols: (j['symbols'] as List?)?.cast<String>() ?? const ['BTCUSDT', 'ETHUSDT'],
+      timeframe: j['timeframe'] as String? ?? AppConstants.defaultTimeframe,
+      emaPeriod1: (j['emaPeriod1'] as num?)?.toInt() ?? 9,
+      emaPeriod2: (j['emaPeriod2'] as num?)?.toInt() ?? 21,
+      emaPeriod3: (j['emaPeriod3'] as num?)?.toInt() ?? 50,
+      macdFast: (j['macdFast'] as num?)?.toInt() ?? 12,
+      macdSlow: (j['macdSlow'] as num?)?.toInt() ?? 26,
+      macdSignal: (j['macdSignal'] as num?)?.toInt() ?? 9,
+      rsiPeriod: (j['rsiPeriod'] as num?)?.toInt() ?? 14,
+      rsiNeutralLow: (j['rsiNeutralLow'] as num?)?.toDouble() ?? 40.0,
+      rsiNeutralHigh: (j['rsiNeutralHigh'] as num?)?.toDouble() ?? 60.0,
+      rsiOverbought: (j['rsiOverbought'] as num?)?.toDouble() ?? 80.0,
+      rsiOversold: (j['rsiOversold'] as num?)?.toDouble() ?? 20.0,
+      bbPeriod: (j['bbPeriod'] as num?)?.toInt() ?? 20,
+      bbStdDev: (j['bbStdDev'] as num?)?.toDouble() ?? 2.0,
+      vsaLookback: (j['vsaLookback'] as num?)?.toInt() ?? 20,
+      vsaHighVolThreshold: (j['vsaHighVolThreshold'] as num?)?.toDouble() ?? 1.5,
+      vsaVeryHighVolThreshold: (j['vsaVeryHighVolThreshold'] as num?)?.toDouble() ?? 2.0,
+      vsaLowVolThreshold: (j['vsaLowVolThreshold'] as num?)?.toDouble() ?? 0.7,
+      vsaWideSpreadThreshold: (j['vsaWideSpreadThreshold'] as num?)?.toDouble() ?? 1.3,
+      vsaNarrowSpreadThreshold: (j['vsaNarrowSpreadThreshold'] as num?)?.toDouble() ?? 0.7,
+      vsaCloseNearTopThreshold: (j['vsaCloseNearTopThreshold'] as num?)?.toDouble() ?? 0.6,
+      vsaCloseNearBottomThreshold: (j['vsaCloseNearBottomThreshold'] as num?)?.toDouble() ?? 0.4,
+      atrPeriod: (j['atrPeriod'] as num?)?.toInt() ?? 14,
+      atrMultiplier: (j['atrMultiplier'] as num?)?.toDouble() ?? AppConstants.defaultAtrMultiplier,
+      minRR: (j['minRR'] as num?)?.toDouble() ?? AppConstants.defaultMinRR,
+      dailyProfitTarget: (j['dailyProfitTarget'] as num?)?.toDouble() ?? AppConstants.defaultDailyProfitTarget,
+      maxDailyLoss: (j['maxDailyLoss'] as num?)?.toDouble() ?? AppConstants.defaultMaxDailyLoss,
+      maxDailyTrades: (j['maxDailyTrades'] as num?)?.toInt() ?? AppConstants.defaultMaxDailyTrades,
+      riskPercent: (j['riskPercent'] as num?)?.toDouble() ?? AppConstants.defaultRiskPercent,
+      isPaperMode: j['isPaperMode'] as bool? ?? true,
+      isEngineRunning: j['isEngineRunning'] as bool? ?? false,
+      autoStartOnBoot: j['autoStartOnBoot'] as bool? ?? false,
+      marketType: mt,
+      minScoreToEnter: (j['minScoreToEnter'] as num?)?.toInt() ?? 4,
+      activeIndicators: ai,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
         'symbols': symbols,
         'timeframe': timeframe,
