@@ -1076,6 +1076,18 @@ class _SymbolsSection extends StatelessWidget {
 
   const _SymbolsSection({required this.settings, required this.onChanged});
 
+  void _openPairPicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _PairPickerSheet(
+        selected: settings.symbols,
+        onChanged: (updated) => onChanged(settings.copyWith(symbols: updated)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -1083,30 +1095,101 @@ class _SymbolsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Trading Pairs', style: TextStyle(color: kTextSecondary, fontSize: 12)),
+          Row(
+            children: [
+              const Text('Trading Pairs',
+                  style: TextStyle(color: kTextSecondary, fontSize: 12)),
+              const Spacer(),
+              Text('${settings.symbols.length} selected',
+                  style: const TextStyle(color: kTextSecondary, fontSize: 11)),
+            ],
+          ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: AppConstants.defaultSymbols.map((symbol) {
-              final selected = settings.symbols.contains(symbol);
-              return FilterChip(
-                label: Text(symbol),
-                selected: selected,
-                onSelected: (v) {
-                  final updated = List<String>.from(settings.symbols);
-                  if (v) {
-                    if (!updated.contains(symbol)) updated.add(symbol);
-                  } else {
-                    if (updated.length > 1) updated.remove(symbol);
-                  }
-                  onChanged(settings.copyWith(symbols: updated));
-                },
-              );
-            }).toList(),
+          Container(
+            decoration: BoxDecoration(
+              color: kCardColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: kDividerColor),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 8, 6),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: settings.symbols.map((pair) {
+                      final base = pair.replaceAll('USDT', '');
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: kProfitColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: kProfitColor.withValues(alpha: 0.35)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(base,
+                                style: const TextStyle(
+                                    color: kProfitColor,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700)),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () {
+                                if (settings.symbols.length > 1) {
+                                  final updated =
+                                      List<String>.from(settings.symbols)
+                                        ..remove(pair);
+                                  onChanged(
+                                      settings.copyWith(symbols: updated));
+                                }
+                              },
+                              child: Icon(Icons.close,
+                                  size: 13,
+                                  color: kProfitColor.withValues(alpha: 0.8)),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const Divider(height: 1, color: kDividerColor),
+                InkWell(
+                  onTap: () => _openPairPicker(context),
+                  borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.add_circle_outline,
+                            color: kProfitColor, size: 16),
+                        const SizedBox(width: 6),
+                        const Text('Add / Remove Pairs',
+                            style: TextStyle(
+                                color: kProfitColor,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        Icon(Icons.chevron_right,
+                            color: kTextSecondary.withValues(alpha: 0.5),
+                            size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
-          const Text('Timeframe', style: TextStyle(color: kTextSecondary, fontSize: 12)),
+          const Text('Timeframe',
+              style: TextStyle(color: kTextSecondary, fontSize: 12)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -1127,6 +1210,256 @@ class _SymbolsSection extends StatelessWidget {
             onChanged: (v) => onChanged(settings.copyWith(isPaperMode: v)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PairPickerSheet extends StatefulWidget {
+  final List<String> selected;
+  final ValueChanged<List<String>> onChanged;
+
+  const _PairPickerSheet({required this.selected, required this.onChanged});
+
+  @override
+  State<_PairPickerSheet> createState() => _PairPickerSheetState();
+}
+
+class _PairPickerSheetState extends State<_PairPickerSheet> {
+  late List<String> _selected;
+  String _query = '';
+  final _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = List<String>.from(widget.selected);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<String> get _filtered {
+    if (_query.isEmpty) return AppConstants.allTradingPairs;
+    final q = _query.toUpperCase();
+    return AppConstants.allTradingPairs
+        .where((p) => p.contains(q))
+        .toList();
+  }
+
+  void _toggle(String pair) {
+    setState(() {
+      if (_selected.contains(pair)) {
+        if (_selected.length > 1) _selected.remove(pair);
+      } else {
+        _selected.add(pair);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = _filtered;
+    return DraggableScrollableSheet(
+      initialChildSize: 0.88,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (_, controller) => Container(
+        decoration: const BoxDecoration(
+          color: kSurfaceColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: kDividerColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: Row(
+                children: [
+                  const Text('Select Trading Pairs',
+                      style: TextStyle(
+                          color: kTextPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: kProfitColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_selected.length} selected',
+                      style: const TextStyle(
+                          color: kProfitColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: kTextPrimary),
+                onChanged: (v) => setState(() => _query = v),
+                decoration: InputDecoration(
+                  hintText: 'Search pair… e.g. BTC, ETH, SOL',
+                  hintStyle: TextStyle(
+                      color: kTextSecondary.withValues(alpha: 0.5),
+                      fontSize: 14),
+                  prefixIcon: const Icon(Icons.search,
+                      color: kTextSecondary, size: 20),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear,
+                              color: kTextSecondary, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: kCardColor,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: kDividerColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: kDividerColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kProfitColor),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No pairs matching "$_query"',
+                        style: const TextStyle(color: kTextSecondary),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: controller,
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) {
+                        final pair = filtered[i];
+                        final base = pair.replaceAll('USDT', '');
+                        final isOn = _selected.contains(pair);
+                        return InkWell(
+                          onTap: () => _toggle(pair),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 2),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: isOn
+                                        ? kProfitColor.withValues(alpha: 0.12)
+                                        : kCardColor,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      base.length > 3
+                                          ? base.substring(0, 3)
+                                          : base,
+                                      style: TextStyle(
+                                        color: isOn
+                                            ? kProfitColor
+                                            : kTextSecondary,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(base,
+                                          style: TextStyle(
+                                              color: isOn
+                                                  ? kTextPrimary
+                                                  : kTextSecondary,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600)),
+                                      Text('/ USDT',
+                                          style: const TextStyle(
+                                              color: kTextSecondary,
+                                              fontSize: 11)),
+                                    ],
+                                  ),
+                                ),
+                                Checkbox(
+                                  value: isOn,
+                                  onChanged: (_) => _toggle(pair),
+                                  activeColor: kProfitColor,
+                                  checkColor: kBgColor,
+                                  side: BorderSide(color: kDividerColor),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      widget.onChanged(_selected);
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kProfitColor,
+                      foregroundColor: kBgColor,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      'Apply ${_selected.length} ${_selected.length == 1 ? "Pair" : "Pairs"}',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
