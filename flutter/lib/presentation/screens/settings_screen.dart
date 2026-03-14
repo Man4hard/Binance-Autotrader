@@ -24,6 +24,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _obscureSecret = true;
   bool _isSavingKeys = false;
   bool _isTestingConnection = false;
+  bool _isSavingSettings = false;
+
+  StrategySettings? _draft;
+
+  bool get _hasChanges => _draft != null;
 
   @override
   void initState() {
@@ -36,6 +41,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _apiKeyController.dispose();
     _secretKeyController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveSettings() async {
+    if (_draft == null) return;
+    setState(() => _isSavingSettings = true);
+    try {
+      await ref.read(strategySettingsProvider.notifier).updateSettings(_draft!);
+      if (mounted) {
+        setState(() {
+          _draft = null;
+          _isSavingSettings = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Settings saved'),
+          backgroundColor: kProfitColor,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSavingSettings = false);
+        showErrorSnackbar(context, 'Failed to save: $e');
+      }
+    }
+  }
+
+  Future<bool> _confirmDiscard() async {
+    if (!_hasChanges) return true;
+    return ConfirmationDialog.show(
+      context,
+      title: 'Unsaved Changes',
+      message: 'You have unsaved changes. Discard them?',
+      confirmLabel: 'Discard',
+      isDangerous: true,
+    );
   }
 
   Future<void> _loadKeys() async {
@@ -120,62 +161,157 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final settingsState = ref.watch(strategySettingsProvider);
-    final settings = settingsState.settings;
-    final notifier = ref.read(strategySettingsProvider.notifier);
+    final saved = settingsState.settings;
+    final working = _draft ?? saved;
 
-    void onChanged(StrategySettings updated) => notifier.updateSettings(updated);
+    void onChanged(StrategySettings updated) =>
+        setState(() => _draft = updated);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: LoadingOverlay(
-        isLoading: settingsState.isLoading,
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 100),
-          children: [
-            _SavedStrategiesBanner(settings: settings),
-            _SectionHeader(title: '🔑 API Keys', subtitle: 'Stored securely in Android Keystore'),
-            _ApiKeysSection(
-              apiKeyController: _apiKeyController,
-              secretController: _secretKeyController,
-              obscureApiKey: _obscureApiKey,
-              obscureSecret: _obscureSecret,
-              isSaving: _isSavingKeys,
-              isTesting: _isTestingConnection,
-              onToggleApiKey: () => setState(() => _obscureApiKey = !_obscureApiKey),
-              onToggleSecret: () => setState(() => _obscureSecret = !_obscureSecret),
-              onSave: _saveKeys,
-              onDelete: _deleteKeys,
-              onTest: _testConnection,
-            ),
-            _SectionHeader(
-              title: '🔬 Active Indicators',
-              subtitle: 'Toggle which indicators are used to generate signals',
-            ),
-            _IndicatorTogglesSection(
-              settings: settings,
-              onChanged: onChanged,
-            ),
-            _SectionHeader(title: '📈 Strategy Parameters'),
-            _StrategySection(
-              settings: settings,
-              onChanged: onChanged,
-            ),
-            _SectionHeader(title: '⚖️ Risk Management'),
-            _RiskSection(
-              settings: settings,
-              onChanged: onChanged,
-            ),
-            _SectionHeader(title: '📊 Symbols & Timeframe'),
-            _SymbolsSection(
-              settings: settings,
-              onChanged: onChanged,
-            ),
-            _SectionHeader(title: '⚙️ Engine'),
-            _EngineSection(
-              settings: settings,
-              onChanged: onChanged,
-            ),
-          ],
+    return PopScope(
+      canPop: !_hasChanges,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final discard = await _confirmDiscard();
+        if (discard && mounted) {
+          setState(() => _draft = null);
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Settings'),
+          actions: _hasChanges
+              ? [
+                  TextButton(
+                    onPressed: () => setState(() => _draft = null),
+                    child: const Text('Discard',
+                        style: TextStyle(color: kDangerColor, fontSize: 13)),
+                  ),
+                  const SizedBox(width: 4),
+                ]
+              : null,
+        ),
+        bottomNavigationBar: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          height: _hasChanges ? 80 : 0,
+          child: _hasChanges
+              ? Container(
+                  color: kSurfaceColor,
+                  padding:
+                      const EdgeInsets.fromLTRB(16, 10, 16, 20),
+                  child: SizedBox(
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed:
+                          _isSavingSettings ? null : _saveSettings,
+                      icon: _isSavingSettings
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: kBgColor),
+                            )
+                          : const Icon(Icons.save_rounded, size: 20),
+                      label: Text(
+                        _isSavingSettings
+                            ? 'Saving…'
+                            : 'Save Settings',
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kProfitColor,
+                        foregroundColor: kBgColor,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+        body: LoadingOverlay(
+          isLoading: settingsState.isLoading,
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: [
+              if (_hasChanges)
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: kWarningColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: kWarningColor.withValues(alpha: 0.4)),
+                  ),
+                  child: const Row(children: [
+                    Icon(Icons.edit_note_rounded,
+                        color: kWarningColor, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'You have unsaved changes — tap Save Settings to apply them.',
+                        style: TextStyle(
+                            color: kWarningColor, fontSize: 12),
+                      ),
+                    ),
+                  ]),
+                ),
+              _SavedStrategiesBanner(settings: working),
+              _SectionHeader(
+                  title: '🔑 API Keys',
+                  subtitle: 'Stored securely in Android Keystore'),
+              _ApiKeysSection(
+                apiKeyController: _apiKeyController,
+                secretController: _secretKeyController,
+                obscureApiKey: _obscureApiKey,
+                obscureSecret: _obscureSecret,
+                isSaving: _isSavingKeys,
+                isTesting: _isTestingConnection,
+                onToggleApiKey: () =>
+                    setState(() => _obscureApiKey = !_obscureApiKey),
+                onToggleSecret: () =>
+                    setState(() => _obscureSecret = !_obscureSecret),
+                onSave: _saveKeys,
+                onDelete: _deleteKeys,
+                onTest: _testConnection,
+              ),
+              _SectionHeader(
+                title: '🔬 Active Indicators',
+                subtitle:
+                    'Toggle which indicators are used to generate signals',
+              ),
+              _IndicatorTogglesSection(
+                settings: working,
+                onChanged: onChanged,
+              ),
+              _SectionHeader(title: '📈 Strategy Parameters'),
+              _StrategySection(
+                settings: working,
+                onChanged: onChanged,
+              ),
+              _SectionHeader(title: '⚖️ Risk Management'),
+              _RiskSection(
+                settings: working,
+                onChanged: onChanged,
+              ),
+              _SectionHeader(title: '📊 Symbols & Timeframe'),
+              _SymbolsSection(
+                settings: working,
+                onChanged: onChanged,
+              ),
+              _SectionHeader(title: '⚙️ Engine'),
+              _EngineSection(
+                settings: working,
+                onChanged: onChanged,
+              ),
+            ],
+          ),
         ),
       ),
     );
