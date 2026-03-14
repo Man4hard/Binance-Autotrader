@@ -8,6 +8,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import '../../core/constants.dart';
 import '../../domain/entities/candle.dart';
 import '../../domain/entities/signal.dart';
+import '../../domain/entities/strategy_settings.dart';
 import '../../domain/usecases/evaluate_signal.dart';
 import '../providers/providers.dart';
 import '../theme/app_theme.dart';
@@ -260,6 +261,14 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Immediately recalculate indicators whenever strategy settings are saved.
+    // Without this, users would wait up to 30s for the timer to fire.
+    ref.listen(strategySettingsProvider, (prev, next) {
+      if (prev?.settings != next.settings) {
+        _loadSignal();
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: GestureDetector(
@@ -360,6 +369,7 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen>
             isLoading: _isLoadingSignal,
             error: _signalError,
             onRefresh: _loadSignal,
+            settings: ref.watch(strategySettingsProvider).settings,
           ),
         ],
       ),
@@ -460,6 +470,7 @@ class _IndicatorsTab extends StatelessWidget {
   final bool isLoading;
   final String? error;
   final VoidCallback onRefresh;
+  final StrategySettings settings;
 
   const _IndicatorsTab({
     required this.signal,
@@ -467,6 +478,7 @@ class _IndicatorsTab extends StatelessWidget {
     required this.isLoading,
     required this.error,
     required this.onRefresh,
+    required this.settings,
   });
 
   @override
@@ -537,7 +549,7 @@ class _IndicatorsTab extends StatelessWidget {
 
                     // Indicator cards grid
                     _IndicatorCardsGrid(
-                        signal: signal!, candles: candles),
+                        signal: signal!, candles: candles, settings: settings),
                   ],
                 ),
     );
@@ -551,9 +563,10 @@ class _IndicatorsTab extends StatelessWidget {
 class _IndicatorCardsGrid extends StatelessWidget {
   final Signal signal;
   final List<Candle> candles;
+  final StrategySettings settings;
 
   const _IndicatorCardsGrid(
-      {required this.signal, required this.candles});
+      {required this.signal, required this.candles, required this.settings});
 
   @override
   Widget build(BuildContext context) {
@@ -574,7 +587,7 @@ class _IndicatorCardsGrid extends StatelessWidget {
           children: [
             Expanded(
               child: _IndicatorCard(
-                label: 'EMA 9',
+                label: 'EMA ${settings.emaPeriod1}',
                 value: '\$${s.ema9.toStringAsFixed(4)}',
                 subtitle: last.close > s.ema9
                     ? 'Price above ↑'
@@ -585,7 +598,7 @@ class _IndicatorCardsGrid extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: _IndicatorCard(
-                label: 'EMA 21',
+                label: 'EMA ${settings.emaPeriod2}',
                 value: '\$${s.ema21.toStringAsFixed(4)}',
                 subtitle: last.close > s.ema21
                     ? 'Price above ↑'
@@ -597,11 +610,11 @@ class _IndicatorCardsGrid extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         _IndicatorCard(
-          label: 'EMA 50',
+          label: 'EMA ${settings.emaPeriod3}',
           value: '\$${s.ema50.toStringAsFixed(4)}',
           subtitle: last.close > s.ema50
-              ? 'Price above EMA 50 — bullish trend'
-              : 'Price below EMA 50 — bearish trend',
+              ? 'Price above EMA ${settings.emaPeriod3} — bullish trend'
+              : 'Price below EMA ${settings.emaPeriod3} — bearish trend',
           color: last.close > s.ema50 ? kProfitColor : kDangerColor,
         ),
         const SizedBox(height: 8),
