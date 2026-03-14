@@ -50,6 +50,8 @@ class AppConstants {
     'FETUSDT', 'RNDRUSDT', 'GRTUSDT', 'IMXUSDT', 'LPTUSDT',
     'ANKRUSDT', 'STORJUSDT', 'COTIUSDT', 'REQUSDT', 'POWRUSDT',
     'GMTUSDT', 'SPELLUSDT', 'JASMYUSDT', 'XECUSDT', 'CFXUSDT',
+    'MANTAUSDT', 'ZROUSDT', 'EIGENUSDT', 'SCRUSDT', 'REZUSDT',
+    'BBUSDT', 'NOTUSDT', 'IOUSDT', 'ZKUSDT', 'LISTAUSDT',
   ];
 
   static const List<String> availableTimeframes = ['1m', '5m', '15m', '1h', '4h'];
