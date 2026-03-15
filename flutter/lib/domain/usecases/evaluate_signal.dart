@@ -26,10 +26,10 @@ Signal evaluateSignal(
     ema50v = lastValidValue(ema3Values);
     if (ema9v.isNaN || ema21v.isNaN || ema50v.isNaN) {
       emaScore = 0;
-    } else if (currentPrice > ema9v && ema9v > ema21v && ema21v > ema50v) {
-      emaScore = 1;
-    } else if (currentPrice < ema9v && ema9v < ema21v && ema21v < ema50v) {
-      emaScore = -1;
+    } else if (ema9v > ema21v && currentPrice > ema21v) {
+      emaScore = 1;   // Fast EMA above slow + price above slow → bullish
+    } else if (ema9v < ema21v && currentPrice < ema21v) {
+      emaScore = -1;  // Fast EMA below slow + price below slow → bearish
     } else {
       emaScore = 0;
     }

@@ -1,3 +1,4 @@
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/strategy_settings.dart';
@@ -50,6 +51,12 @@ class StrategySettingsNotifier extends Notifier<StrategySettingsState> {
   Future<void> updateSettings(StrategySettings settings) async {
     state = state.copyWith(settings: settings);
     await _repo.saveSettings(settings);
+    try {
+      final svc = FlutterBackgroundService();
+      if (await svc.isRunning()) {
+        svc.invoke('updateSettings');
+      }
+    } catch (_) {}
   }
 
   Future<void> togglePaperMode(bool value) async {
