@@ -36,12 +36,16 @@ void onEngineStart(ServiceInstance service) async {
   String? apiKey = await secureStorage.getApiKey();
   String? secret = await secureStorage.getSecretKey();
 
-  await restClient.syncServerTime();
+  try {
+    await restClient.syncServerTime();
+  } catch (e) {
+    await notifications.showError('Server time sync failed: $e');
+  }
 
   if (service is AndroidServiceInstance) {
     service.setForegroundNotificationInfo(
       title: 'CryptoBot Engine',
-      content: 'Monitoring ${settings.symbols.join(", ")}',
+      content: 'Monitoring ${settings.symbols.join(", ")} — ${settings.symbols.length} pairs',
     );
   }
 
@@ -49,15 +53,32 @@ void onEngineStart(ServiceInstance service) async {
   int dailyTradeCount = 0;
   DateTime lastDayCheck = DateTime.now().toUtc();
   bool targetReached = false;
+  int tickCount = 0;
 
   service.on('stop').listen((_) async {
     await service.stopSelf();
   });
 
-  service.on('updateSettings').listen((_) async {
-    settings = await settingsRepo.getSettings();
-    apiKey = await secureStorage.getApiKey();
-    secret = await secureStorage.getSecretKey();
+  // ── Settings update: receive JSON directly to avoid cross-isolate Hive cache ──
+  service.on('updateSettings').listen((data) async {
+    try {
+      if (data != null && data is Map) {
+        settings = StrategySettings.fromJson(Map<String, dynamic>.from(data));
+      } else {
+        settings = await settingsRepo.getSettings();
+      }
+      apiKey = await secureStorage.getApiKey();
+      secret = await secureStorage.getSecretKey();
+
+      if (service is AndroidServiceInstance) {
+        service.setForegroundNotificationInfo(
+          title: 'CryptoBot Engine',
+          content: 'Settings updated — watching ${settings.symbols.join(", ")}',
+        );
+      }
+    } catch (e) {
+      await notifications.showError('Settings reload failed: $e');
+    }
   });
 
   service.on('emergencyStop').listen((_) async {
@@ -84,6 +105,8 @@ void onEngineStart(ServiceInstance service) async {
       }
     }
 
+    tickCount++;
+
     final now = DateTime.now().toUtc();
     if (!now.isSameDay(lastDayCheck)) {
       dailyPnl = 0;
@@ -107,31 +130,51 @@ void onEngineStart(ServiceInstance service) async {
       return;
     }
 
-    if (dailyTradeCount >= settings.maxDailyTrades) return;
-
-    final activeTrades = await tradeRepo.getActiveTrades(
-      isPaper: settings.isPaperMode,
-    );
-
-    for (final trade in activeTrades) {
-      try {
-        final candles = await restClient.getKlines(
-          trade.symbol,
-          settings.timeframe,
-          limit: 10,
+    if (dailyTradeCount >= settings.maxDailyTrades) {
+      if (service is AndroidServiceInstance) {
+        service.setForegroundNotificationInfo(
+          title: 'CryptoBot Engine',
+          content: 'Max daily trades ($dailyTradeCount) reached. Waiting for next day.',
         );
-        if (candles.isNotEmpty) {
-          final exit = checkExitConditions(trade, candles.last);
-          if (exit.shouldExit && exit.exitPrice != null) {
-            final closed = closeTrade(trade, exit.exitPrice!, exit.reason);
-            await tradeRepo.updateTrade(closed);
-            dailyPnl += closed.realizedPnl ?? 0;
-            await notifications.showTradeExit(closed);
-            service.invoke('tradeUpdate', {'action': 'closed', 'trade': closed.toJson()});
-          }
-        }
-      } catch (_) {}
+      }
+      return;
     }
+
+    // ── Manage open trades (exit checks) ─────────────────────────────────────
+    List<Trade> activeTrades = [];
+    try {
+      activeTrades = await tradeRepo.getActiveTrades(isPaper: settings.isPaperMode);
+      for (final trade in activeTrades) {
+        try {
+          final candles = await restClient.getKlines(
+            trade.symbol,
+            settings.timeframe,
+            limit: 10,
+          );
+          if (candles.isNotEmpty) {
+            final exit = checkExitConditions(trade, candles.last);
+            if (exit.shouldExit && exit.exitPrice != null) {
+              final closed = closeTrade(trade, exit.exitPrice!, exit.reason);
+              await tradeRepo.updateTrade(closed);
+              dailyPnl += closed.realizedPnl ?? 0;
+              await notifications.showTradeExit(closed);
+              service.invoke('tradeUpdate', {'action': 'closed', 'trade': closed.toJson()});
+            }
+          }
+        } catch (e) {
+          await notifications.showError('Exit check failed for ${trade.symbol}: $e');
+        }
+      }
+    } catch (e) {
+      await notifications.showError('Trade repo error: $e');
+    }
+
+    // ── Signal evaluation & entry ─────────────────────────────────────────────
+    final indicators = settings.activeIndicators.entries
+        .where((e) => e.value)
+        .map((e) => e.key.toUpperCase())
+        .join('/');
+    final modeLabel = settings.isPaperMode ? 'PAPER' : 'LIVE';
 
     for (final symbol in settings.symbols) {
       try {
@@ -141,17 +184,25 @@ void onEngineStart(ServiceInstance service) async {
           limit: 200,
         );
 
-        if (candles.length < 200) continue;
+        if (candles.length < 100) {
+          await notifications.showError('Not enough candles for $symbol: ${candles.length}');
+          continue;
+        }
 
         final signal = evaluateSignal(candles, settings, symbol);
         service.invoke('signalUpdate', signal.toJson());
 
-        if (signal.action.name == 'none') continue;
+        if (service is AndroidServiceInstance && tickCount % 3 == 0) {
+          service.setForegroundNotificationInfo(
+            title: 'CryptoBot [$modeLabel] — $indicators',
+            content: '$symbol: score ${signal.bullScore}↑ ${signal.bearScore}↓ / ${signal.maxScore} | trades: $dailyTradeCount',
+          );
+        }
 
-        final existingActive = activeTrades
-            .where((t) => t.symbol == symbol)
-            .toList();
-        if (existingActive.isNotEmpty) continue;
+        if (signal.action == SignalAction.none) continue;
+
+        final alreadyActive = activeTrades.any((t) => t.symbol == symbol);
+        if (alreadyActive) continue;
 
         double balance = settings.isPaperMode
             ? await _getPaperBalance(tradeRepo, settings)
@@ -164,10 +215,13 @@ void onEngineStart(ServiceInstance service) async {
               secret: secret!,
             );
             balance = acct.usdtFree;
-          } catch (_) {}
+          } catch (e) {
+            await notifications.showError('Balance fetch failed: $e');
+            continue;
+          }
         }
 
-        final side = signal.action.name == 'buy' ? TradeSide.buy : TradeSide.sell;
+        final side = signal.action == SignalAction.buy ? TradeSide.buy : TradeSide.sell;
         final sizing = calculatePositionSize(
           balance: balance,
           entryPrice: signal.currentPrice,
@@ -176,7 +230,12 @@ void onEngineStart(ServiceInstance service) async {
           side: side,
         );
 
-        if (!sizing.isValid) continue;
+        if (!sizing.isValid) {
+          await notifications.showError(
+            'Invalid sizing for $symbol: qty=${sizing.quantity.toStringAsFixed(6)} sl=${sizing.stopLoss} tp=${sizing.takeProfit} rr=${sizing.riskRewardRatio.toStringAsFixed(2)}',
+          );
+          continue;
+        }
 
         if (!settings.isPaperMode && apiKey != null && secret != null) {
           try {
@@ -212,11 +271,13 @@ void onEngineStart(ServiceInstance service) async {
 
         if (service is AndroidServiceInstance) {
           service.setForegroundNotificationInfo(
-            title: 'CryptoBot Engine',
-            content: 'Active: $dailyTradeCount trades | P&L: ${dailyPnl.toStringAsFixed(2)}',
+            title: 'CryptoBot [$modeLabel] — Trade Opened!',
+            content: '${side.name.toUpperCase()} $symbol @ \$${signal.currentPrice.toStringAsFixed(4)} | trades: $dailyTradeCount',
           );
         }
-      } catch (_) {}
+      } catch (e) {
+        await notifications.showError('Engine error on $symbol: $e');
+      }
     }
   });
 }

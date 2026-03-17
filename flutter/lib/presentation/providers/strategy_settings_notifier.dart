@@ -54,7 +54,7 @@ class StrategySettingsNotifier extends Notifier<StrategySettingsState> {
     try {
       final svc = FlutterBackgroundService();
       if (await svc.isRunning()) {
-        svc.invoke('updateSettings');
+        svc.invoke('updateSettings', settings.toJson());
       }
     } catch (_) {}
   }
