@@ -8,6 +8,7 @@ import '../../core/hive_init.dart';
 import '../../domain/entities/strategy_settings.dart';
 import '../../domain/entities/trade.dart';
 import '../../domain/entities/candle.dart';
+import '../../domain/entities/signal.dart';
 import '../../domain/usecases/calculate_indicators.dart';
 import '../../domain/usecases/evaluate_signal.dart';
 import '../../domain/usecases/calculate_position_size.dart';
