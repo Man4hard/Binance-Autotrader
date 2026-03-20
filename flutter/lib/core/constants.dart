@@ -66,6 +66,7 @@ class AppConstants {
   static const double defaultRiskPercent = 0.01;
   static const double defaultMinRR = 1.5;
   static const double defaultAtrMultiplier = 1.5;
+  static const int defaultMinScoreToEnter = 2;
 
   static const Map<String, bool> defaultActiveIndicators = {
     'ema': true,

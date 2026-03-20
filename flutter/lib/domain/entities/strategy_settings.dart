@@ -77,7 +77,7 @@ class StrategySettings {
     this.isEngineRunning = false,
     this.autoStartOnBoot = false,
     this.marketType = MarketTypeMode.spot,
-    this.minScoreToEnter = 4,
+    this.minScoreToEnter = AppConstants.defaultMinScoreToEnter,
     this.activeIndicators = AppConstants.defaultActiveIndicators,
   });
 
@@ -213,7 +213,7 @@ class StrategySettings {
       isEngineRunning: j['isEngineRunning'] as bool? ?? false,
       autoStartOnBoot: j['autoStartOnBoot'] as bool? ?? false,
       marketType: mt,
-      minScoreToEnter: (j['minScoreToEnter'] as num?)?.toInt() ?? 4,
+      minScoreToEnter: (j['minScoreToEnter'] as num?)?.toInt() ?? AppConstants.defaultMinScoreToEnter,
       activeIndicators: ai,
     );
   }
